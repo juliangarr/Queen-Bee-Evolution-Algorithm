@@ -22,7 +22,7 @@ int main() {
     cec17_init("random", funcid, dim);
 
     cerr <<"Warning: output by console, if you want to create the output file you have to comment cec17_print_output()" <<endl;
-    cec17_print_output(); // Comment to generate the output file
+    //cec17_print_output(); // Comment to generate the output file
 
     std::mt19937 gen(seed); // Inicio semilla
     int evals = 0;
