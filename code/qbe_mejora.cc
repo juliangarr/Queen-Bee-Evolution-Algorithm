@@ -12,9 +12,10 @@ using namespace std;
 
 // Funciones
 vector<double> seleccionTorneo(const vector<vector<double>>& population, const vector<double>& fitnesses, int excludeIndex, int numTorneos, std::mt19937 &gen);
-void seleccionPadres(int numPadres, const vector<vector<double>>& population, vector<vector<double>>& padres, const vector<double>& fitnesses, int numTorneos, int excludeIndex, std::mt19937 &gen);
+void seleccionPadresMejora(int numPadres, const vector<vector<double>>& population, vector<vector<double>>& padres, const vector<double>& fitnesses, int excludeIndex);
 void cruce(const vector<vector<double>>& padres, vector<vector<double>>& sucesores, const vector<double>& reina, int numPadres, int dim, double alpha);
 void mutacion(vector<vector<double>>& sucesores, double pm, double pm_strong, double xi, int n, int dim, std::mt19937 &gen);
+double euclideanDistance(const vector<double>& a, const vector<double>& b);
 
 int main (int argc, char* argv[]) {
     
@@ -33,7 +34,7 @@ int main (int argc, char* argv[]) {
   string dimension_str = oss.str();
 
   // Nombre del algoritmo a CHAR
-  string algname_str = "qbe" + dimension_str;
+  string algname_str = "qbe_Mejora" + dimension_str;
   const char* alg_name = algname_str.c_str();
 
 
@@ -88,6 +89,9 @@ int main (int argc, char* argv[]) {
     vector<vector<double>> padres(m); // Crear el vector de padres (zánganos)
     vector<vector<double>> sucesores(n, vector<double>(dim)); // Crear el vector de sucesores
 
+    // ------------------------------ MEJORA ---------------------------------
+    vector<double> distances_to_queen(n);
+
     // Inicialización de la población (aleatoria)
     for (int i = 0; i < n; ++i) {
       for (int j = 0; j < dim; ++j) {
@@ -106,10 +110,15 @@ int main (int argc, char* argv[]) {
     best_index = distance(fitnesses.begin(), min_it); // Calcular el índice a partir del iterador
     best_fitness = *min_it; // Guardar el mejor fitness
     best_sol = population[best_index]; // Guardar la mejor solución
+
+    // Inicialización de las distancias a la reina
+    for (int i = 0; i < n; ++i) {
+      distances_to_queen[i] = euclideanDistance(population[i], best_sol);
+    }
     
     while (evals < maxevals) {
       // Generación de los padres (zánganos)
-      seleccionPadres(m, population, padres, fitnesses, numTorneos, best_index, gen);
+      seleccionPadresMejora(m, population, padres, fitnesses, best_index);
 
       // Cruce de los padres
       cruce(padres, sucesores, best_sol, m, dim, alpha);
@@ -153,32 +162,28 @@ int main (int argc, char* argv[]) {
   }
 }
 
-vector<double> seleccionTorneo(const vector<vector<double>>& population, const vector<double>& fitnesses, int excludeIndex, int numTorneos, std::mt19937 &gen) {
-    double bestFit = __DBL_MAX__;
-    int index, bestIndex = 0;
-    double fitness;
+void seleccionPadresMejora(int numPadres, const vector<vector<double>>& population, vector<vector<double>>& padres, const vector<double>& fitnesses, int excludeIndex ) {
+    // Tamaño de la población
     int n = population.size();
 
-    uniform_int_distribution<int> dis(0, n - 1);
-
-    for(int i = 0; i < numTorneos; ++i) {
-        do {
-            index = dis(gen);
-        } while (index == excludeIndex); // Evita seleccionar el índice excluido
-        
-        fitness = fitnesses[index];
-        if(fitness < bestFit) {
-            bestFit = fitness;
-            bestIndex = index;
-        }
+    // Seleccionar la reina
+    vector<double> reina = population[excludeIndex];
+    
+    // Seleccionar los m mejores individuos ordenados por su distancia a la reina menos su fitness -> Seleccionar los más alejados con mejor fitness
+    vector<pair<double, int>> individuals(n);
+    for(int i = 0; i < n; ++i) {
+        individuals[i] = make_pair(euclideanDistance(population[i], reina) - fitnesses[i], i);
     }
-    return population[bestIndex];
-}
 
-void seleccionPadres(int numPadres, const vector<vector<double>>& population, vector<vector<double>>& padres, const vector<double>& fitnesses, int numTorneos, int excludeIndex, std::mt19937 &gen ) {
-    // Hacemos torneo tantas veces como número de padres
+    // Excluimos a la reina de la selección
+    individuals[excludeIndex] = make_pair(__DBL_MIN__, excludeIndex);
+
+    // Ordenamos los individuos por la distancia a la reina menos su fitness en orden descendente
+    sort(individuals.begin(), individuals.end(), greater<pair<double, int>>());
+
+    // Seleccionamos los numPadres primeros individuos
     for(int i = 0; i < numPadres; ++i) {
-        padres[i] = seleccionTorneo(population, fitnesses, excludeIndex, numTorneos, gen);
+        padres[i] = population[individuals[i].second];
     }
 }
 
@@ -239,4 +244,12 @@ void mutacion(vector<vector<double>>& sucesores, double pm, double pm_strong, do
             sucesores[i][index_strong[j]] = max(-100.0, min(100.0, sucesores[i][index_strong[j]]));
         }
     }
+}
+
+double euclideanDistance(const vector<double>& a, const vector<double>& b) {
+    double sum = 0.0;
+    for (int i = 0; i < a.size(); ++i) {
+        sum += (a[i] - b[i]) * (a[i] - b[i]);
+    }
+    return sum;
 }
