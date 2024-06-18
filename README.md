@@ -14,6 +14,14 @@ directory *results_<algname>*.
 
 - A script, extrae.py to generate automatically the results ready to use tacolab.
 
+# QUEEN BEE EVOLUTION ALGORITHM
+
+In the code folder the the files qbe.cc, qbe_am.cc and qbe_mejora.cc correspond to the implementation of the algorithm.
+
+- qbe.cc is the standard Queen Bee Evolution algorithm (QBE).
+- qbe_am.cc is a Memetic Algorithm that implements a hybridization of QBE with Local Search.
+- qbe_mejora.cc is a proposal to improve the exploration of solutions in  QBE.
+
 # About the benchmark
 
 For information about the benchmark you can read:
